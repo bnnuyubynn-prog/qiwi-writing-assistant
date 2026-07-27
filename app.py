@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from PIL import Image
 
 # Page styling
@@ -22,21 +23,7 @@ Your role:
 api_key = st.text_input("Paste Google AI Studio API Key Here", type="password")
 
 if api_key:
-    genai.configure(api_key=api_key)
-
-    # Relaxed safety configuration for creative writing
-    safety_settings = [
-        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-    ]
-
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=SYSTEM_PERSONA,
-        safety_settings=safety_settings
-    )
+    client = genai.Client(api_key=api_key)
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -77,9 +64,24 @@ if api_key:
         if user_text:
             contents.append(user_text)
 
+        config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_PERSONA,
+            safety_settings=[
+                types.SafetySetting(
+                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
+                ),
+            ]
+        )
+
         with st.spinner("Thinking..."):
             try:
-                response = model.generate_content(contents)
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=contents,
+                    config=config
+                )
+                
                 reply = response.text
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 with st.chat_message("assistant"):
