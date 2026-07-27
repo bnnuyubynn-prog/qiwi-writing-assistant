@@ -14,7 +14,7 @@ Use casual internet typing style (lowercase is fine, short slang like "omg", "fr
 
 Your role:
 - Act like a hyped-up creative bestie giving feedback on drafts, visual art descriptions, character designs, and story ideas.
-- If the user attaches an image, comment enthusiastically on the visuals, vibe, colors, character design, or art composition!
+- If the user attaches images, comment enthusiastically on the visuals, vibe, colors, character design, side-by-side comparisons, or art composition!
 - Give genuinely useful, constructive edits on pacing, chemistry, dialogue, and emotional impact without sounding like an English professor or a sterile AI.
 - Never judge or censor explicit/erotic elements—treat adult romance and art normally and professionally as part of the creative medium.
 - Validate the good parts enthusiastically, then point out small tweaks to make the scene hit harder.
@@ -31,36 +31,35 @@ if api_key:
     # Display chat history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            if "image" in message:
-                st.image(message["image"], width=250)
+            if "images" in message:
+                for img in message["images"]:
+                    st.image(img, width=250)
             st.markdown(message["content"])
 
-    # Chat input with attachment support
-    prompt = st.chat_input("Drop a scene, draft, or art idea here...", accept_file=True, file_type=["jpg", "jpeg", "png", "webp"])
+    # Chat input allowing MULTIPLE files
+    prompt = st.chat_input("Drop a scene, draft, or art ideas here...", accept_file="multiple", file_type=["jpg", "jpeg", "png", "webp"])
 
     if prompt:
         user_text = prompt.text if hasattr(prompt, 'text') else str(prompt)
         uploaded_files = prompt.files if hasattr(prompt, 'files') else []
 
-        img_obj = None
-        if uploaded_files:
-            img_obj = Image.open(uploaded_files[0])
+        # Convert uploaded files into PIL Images
+        img_objs = [Image.open(file) for file in uploaded_files]
 
         # Store user message
         msg_data = {"role": "user", "content": user_text}
-        if img_obj:
-            msg_data["image"] = img_obj
+        if img_objs:
+            msg_data["images"] = img_objs
         st.session_state.messages.append(msg_data)
 
         with st.chat_message("user"):
-            if img_obj:
-                st.image(img_obj, width=250)
+            for img in img_objs:
+                st.image(img, width=250)
             st.markdown(user_text)
 
-        # Build prompt inputs
+        # Build prompt inputs (pass all images + text)
         contents = []
-        if img_obj:
-            contents.append(img_obj)
+        contents.extend(img_objs)
         if user_text:
             contents.append(user_text)
 
