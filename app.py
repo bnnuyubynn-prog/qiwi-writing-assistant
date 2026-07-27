@@ -57,11 +57,16 @@ if api_key:
                 st.image(img, width=250)
             st.markdown(user_text)
 
-        # Build prompt inputs (pass all images + text)
+        # Build prompt contents with conversation history
         contents = []
+        for msg in st.session_state.messages[:-1]:
+            role_label = "User" if msg["role"] == "user" else "Assistant"
+            contents.append(f"{role_label}: {msg['content']}")
+
+        # Add current uploaded images and text
         contents.extend(img_objs)
         if user_text:
-            contents.append(user_text)
+            contents.append(f"User: {user_text}")
 
         config = types.GenerateContentConfig(
             system_instruction=SYSTEM_PERSONA,
