@@ -1,6 +1,5 @@
 import streamlit as st
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 from PIL import Image
 
 # Page styling
@@ -23,9 +22,20 @@ Your role:
 api_key = st.text_input("Paste Google AI Studio API Key Here", type="password")
 
 if api_key:
-    client = genai.Client(
-        api_key=api_key,
-        http_options=types.HttpOptions(api_version="v1")
+    genai.configure(api_key=api_key)
+
+    # Relaxed safety configuration for creative writing
+    safety_settings = [
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+    ]
+
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=SYSTEM_PERSONA,
+        safety_settings=safety_settings
     )
 
     if "messages" not in st.session_state:
@@ -38,7 +48,7 @@ if api_key:
                 st.image(message["image"], width=250)
             st.markdown(message["content"])
 
-    # Chat input with image attachments allowed
+    # Chat input with attachment support
     prompt = st.chat_input("Drop a scene, draft, or art idea here...", accept_file=True, file_type=["jpg", "jpeg", "png", "webp"])
 
     if prompt:
@@ -60,29 +70,16 @@ if api_key:
                 st.image(img_obj, width=250)
             st.markdown(user_text)
 
-        # Build contents payload for Gemini
-        contents = [user_text]
+        # Build prompt inputs
+        contents = []
         if img_obj:
             contents.append(img_obj)
-
-        config = types.GenerateContentConfig(
-            system_instruction=SYSTEM_PERSONA,
-            safety_settings=[
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    threshold=types.HarmBlockThreshold.BLOCK_NONE,
-                ),
-            ]
-        )
+        if user_text:
+            contents.append(user_text)
 
         with st.spinner("Thinking..."):
             try:
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=contents,
-                    config=config
-                )
-                
+                response = model.generate_content(contents)
                 reply = response.text
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 with st.chat_message("assistant"):
