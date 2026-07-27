@@ -23,7 +23,10 @@ Your role:
 api_key = st.text_input("Paste Google AI Studio API Key Here", type="password")
 
 if api_key:
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(api_version="v1")
+    )
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -75,7 +78,7 @@ if api_key:
         with st.spinner("Thinking..."):
             try:
                 response = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-2.5-flash',
                     contents=contents,
                     config=config
                 )
