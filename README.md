@@ -1,0 +1,1 @@
+# qiwi-writing-assistant
